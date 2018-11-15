@@ -4,6 +4,7 @@
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:int="http://www.springframework.org/schema/integration"
 	xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans
                            http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context
@@ -11,14 +12,26 @@
                            http://www.springframework.org/schema/integration
                            http://www.springframework.org/schema/integration/spring-integration.xsd
                            http://www.springframework.org/schema/integration/file
-                           http://www.springframework.org/schema/integration/file/spring-integration-file.xsd">
+                           http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+                           http://www.springframework.org/schema/integration/xml
+                           http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
 	<!-- Defining channels -->
-	<int:channel id="fileInChannel" />
-	<int:channel id="filteredChannel" />
-	<int:channel id="beanList" />
 	<int:channel id="messageChannel" />
+	<int:channel id="finalOut"/>
 	<int:channel id="fileAsMessage" />
+	<int:channel id="OrderProp" />
+	<int:channel id="stringOrder" />
+	<int:channel id="finalOUT"/>
+	
+		
+	<int:filter input-channel="messageChannel" 	output-channel="finalOut" ref="dynamicFilter" method="filter" />
+	
+<!-- 	<int:bridge  input-channel="finalOut" output-channel="fileInChannel" /> -->
 
+	<int:service-activator ref="logFilteredResult" method="logBean"	input-channel="finalOut" />
+	
+	<int:channel id="trash"></int:channel>
+	
 	<!-- Bean for FileProcessing class -->
 	<bean id="processToListPojo" class="com.knack.functional.FileProcess" />
 	
@@ -26,19 +39,41 @@
 	
 	<bean id="logFilteredResult" class="com.knack.functional.BeanLogger"/>
 	
-	<!-- File From controller to Gateway -->
-<!-- <int:gateway service-interface="com.knack.serviceInterface.FileGateway"	
-		id="fileGateway" default-request-channel="fileInChannel" /> -->
-		
-	<int:bridge  input-channel="fileAsMessage" output-channel="fileInChannel" />
-
-	<int:chain input-channel="fileInChannel">
+	
+	
+	<int:chain input-channel="fileAsMessage">
 		<int:service-activator ref="processToListPojo" method="processFile" />
 		<int:service-activator ref="splitToPOJO" method="split" />
 	</int:chain>
 
-	<int:filter input-channel="messageChannel" output-channel="filteredChannel"	expression="payload.firstName.equals('Sarath')" />
-
-	<int:service-activator ref="logFilteredResult" method="logBean"	input-channel="filteredChannel" />
-
+	
+	
+	<!-- Dynamic Filters from file -->
+	<int:channel id="filterProp"/>
+	<int:channel id="stringFilters"/>
+	
+	<bean id="dynamicFilter" class="com.knack.functional.DynamicFilter" />
+	
+	<file:inbound-channel-adapter id="filterProp" directory="file:filters" prevent-duplicates="true" filename-pattern="*.properties">
+        <int:poller id="poller"  fixed-rate="10000" max-messages-per-poll="2"/>
+    </file:inbound-channel-adapter>	
+    
+    <file:file-to-string-transformer input-channel="filterProp" output-channel="stringFilters" charset="UTF-8"/>
+    
+    <int:service-activator id="someId" ref="dynamicFilter" input-channel="stringFilters" method="getDynamicFilters"/>
+    
+    <file:inbound-channel-adapter id="OrderProp" directory="file:order" prevent-duplicates="true" filename-pattern="*.xml">
+        <int:poller id="poller"  fixed-rate="10000" max-messages-per-poll="2"/>
+    </file:inbound-channel-adapter>	
+    
+    <file:file-to-string-transformer input-channel="OrderProp" output-channel="stringOrder" charset="UTF-8"/>
+    
+    <int-xml:unmarshalling-transformer id="xmlToObject-transformer" input-channel="stringOrder" unmarshaller="jaxbMarshaller" output-channel="finalOUT"/>
+    
+    <bean id="jaxbMarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath" value="com.knack.jaxb" />
+	</bean>
+	
+	<int:service-activator ref="logFilteredResult" input-channel="finalOUT" method="setOrderValue"/>
+	
 </beans>
