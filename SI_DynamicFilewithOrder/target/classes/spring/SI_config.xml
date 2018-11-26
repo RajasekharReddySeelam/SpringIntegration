@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/integration
+                           http://www.springframework.org/schema/integration/spring-integration.xsd
+                           http://www.springframework.org/schema/integration/file
+                           http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+                           http://www.springframework.org/schema/integration/xml
+                           http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
+                           
+    <context:component-scan base-package="com.knack.controller"/>
+    
+	<!-- Defining channels -->
+	<int:channel id="fileCarrier" />
+	<int:channel id="rawItemList.Channel" />
+	<int:channel id="canonical.Channel"/>
+	<int:channel id="target.Channel"/>
+	
+	<!-- CSV input File -->
+	<bean id="fileProcessor" class="com.knack.functional.CSVFileProcess" />
+	<bean id="rawBean" class="com.knack.model.RawItem" />
+	<bean id="targetTransfomer" class="com.knack.transformer.TargetTransformer" />
+	<bean id="canonicalTransformer" class="com.knack.transformer.CanonicalTransformer" /> 
+   
+    <int:service-activator ref="fileProcessor"  method="processFileToBean" input-channel="fileCarrier" output-channel="rawItemList.Channel"  />
+    
+    <int:service-activator ref="canonicalTransformer" method="transformToCanonical" input-channel="rawItemList.Channel" output-channel="canonical.Channel"/>
+    
+    <int:service-activator ref="targetTransfomer" method="transformToTarget" input-channel="canonical.Channel" output-channel="target.Channel" />
+    
+    <int:header-value-router id="router" input-channel="target.Channel" header-name="OutFormat">
+    	<int:mapping value="XML" channel="xmlOutChannel" />
+<!--   		<int:mapping value="csv" channel="csvOutChannel" /> -->
+    </int:header-value-router>
+    	
+	<int:service-activator ref="buildXML" input-channel="xmlOutChannel" method="processToXML" >
+	
+	</int:service-activator>
+	<bean id="buildXML" class="com.knack.functional.BuildXML"/> 
+<!--     <int:transformer input-channel="csvOutChannel" output-channel="filesOut" ref=""/>  -->
+    	
+        
+</beans>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified">
+          <!-- XML Schema Generated from XML Document on Sat Nov 17 2018 19:07:48 GMT+0530 (India Standard Time) -->
+          <!-- with XmlGrid.net Free Online Service http://xmlgrid.net -->
+       <xs:element name="attributes">
+              <xs:complexType>
+                     <xs:sequence>
+                            <xs:element name="attribute" maxOccurs="unbounded" type="xs:string"></xs:element>
+                        </xs:sequence>
+                 </xs:complexType>
+          </xs:element>
+</xs:schema>

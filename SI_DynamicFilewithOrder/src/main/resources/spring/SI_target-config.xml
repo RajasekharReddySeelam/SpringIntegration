@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:int="http://www.springframework.org/schema/integration"
+	xmlns:file="http://www.springframework.org/schema/integration/file"
+	xmlns:int-xml="http://www.springframework.org/schema/integration/xml"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/integration
+                           http://www.springframework.org/schema/integration/spring-integration.xsd
+                           http://www.springframework.org/schema/integration/file
+                           http://www.springframework.org/schema/integration/file/spring-integration-file.xsd
+                           http://www.springframework.org/schema/integration/xml
+                           http://www.springframework.org/schema/integration/xml/spring-integration-xml.xsd">
+    <int:channel id="targetReader" />
+    
+    <int:channel id="targetListChannel" />
+
+    
+    <file:inbound-channel-adapter id="targetReader" directory="file:inputFiles" prevent-duplicates="true" filename-pattern="target.xml">
+        <int:poller id="poller"  fixed-rate="10000" max-messages-per-poll="2"/>
+    </file:inbound-channel-adapter>	
+    
+    <file:file-to-string-transformer input-channel="targetReader" output-channel="stringtarget" charset="UTF-8"/>
+    
+    <int-xml:unmarshalling-transformer id="xmlToObject-transformer2" input-channel="stringtarget" unmarshaller="jaxbMarshaller" output-channel="targetListChannel"/>
+    
+    <bean id="jaxbMarshaller" class="org.springframework.oxm.jaxb.Jaxb2Marshaller">
+		<property name="contextPath" value="com.knack.target" />
+	</bean>
+	
+	<int:service-activator ref="targetItemsBean" input-channel="targetListChannel" method="setAttribute"/>
+</beans>

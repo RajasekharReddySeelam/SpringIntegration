@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<canonical>
+<attribute>FirstName</attribute>
+<attribute>MobileNo</attribute>
+<attribute>Country</attribute>
+<attribute>State</attribute>
+<attribute>City</attribute>
+</canonical>
